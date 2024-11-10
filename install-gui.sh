@@ -1,37 +1,105 @@
 #!/bin/bash
 
-# Update package lists and install necessary packages based on the distribution
-if grep -q "Ubuntu" /etc/os-release; then
-    sudo apt update
-    sudo apt install -y xvfb xfce4 xfce4-goodies firefox plank papirus-icon-theme dbus-x11 neofetch
-elif grep -q "Debian" /etc/os-release; then
-    sudo apt update
-    sudo apt install -y xvfb xfce4 xfce4-goodies firefox-esr plank papirus-icon-theme dbus-x11 neofetch
-else
-    echo "Unsupported distribution"
-    exit 1
-fi
+# Exit immediately if a command exits with a non-zero status
+set -e
 
-# Download and install Chrome Remote Desktop
-wget https://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb
-sudo dpkg -i chrome-remote-desktop_current_amd64.deb
-sudo apt --fix-broken install -y
-rm chrome-remote-desktop_current_amd64.deb
+# Function to check if the OS is Ubuntu or Debian
+detect_os() {
+    if [[ -e /etc/os-release ]]; then
+        . /etc/os-release
+        if [[ "$ID" == "ubuntu" ]]; then
+            OS="Ubuntu"
+        elif [[ "$ID" == "debian" ]]; then
+            OS="Debian"
+        else
+            echo "Unsupported OS: $ID"
+            exit 1
+        fi
+    else
+        echo "Cannot determine the operating system."
+        exit 1
+    fi
+    echo "Detected OS: $OS"
+}
 
-# Install Catppuccin theme
-sudo apt install -y sassc
-git clone https://github.com/catppuccin/gtk.git
-cd gtk
-sudo make build
-sudo make package
-cd pkgs
-sudo cp -r * /usr/share/themes
-cd /usr/share/themes
-~/install-catppuccin.sh
+# Function to update package lists
+update_packages() {
+    echo "Updating package lists..."
+    sudo apt-get update -y
+}
 
-# Install Catppuccin Plank theme
-cd
-git clone https://github.com/catppuccin/plank.git
-cd plank
-sudo cp -r Catppuccin /usr/share/plank/themes
-sudo cp -r Catppuccin-solid /usr/share/plank/themes
+# Function to install essential packages
+install_packages() {
+    echo "Installing essential packages..."
+    sudo apt-get install -y xfce4 Xvfb dbus-x11 neofetch firefox
+}
+
+# Function to install RustDesk
+install_rustdesk() {
+    echo "Installing RustDesk..."
+    local latest_deb
+    latest_deb=$(curl -s https://api.github.com/repos/rustdesk/rustdesk/releases/latest | grep "browser_download_url.*deb" | cut -d '"' -f 4)
+    wget -O /tmp/rustdesk.deb "$latest_deb"
+    sudo dpkg -i /tmp/rustdesk.deb || sudo apt-get install -f -y
+    rm /tmp/rustdesk.deb
+}
+
+# Function to configure RustDesk for instant connection
+configure_rustdesk() {
+    echo "Configuring RustDesk for instant connection..."
+    
+    # Enable RustDesk to start on boot
+    systemctl --user enable rustdesk
+    systemctl --user start rustdesk
+
+    read -sp "Enter RustDesk password: " RUST_DESK_PASSWORD
+    echo
+    mkdir -p ~/.config/RustDesk
+    echo "{\"password\":\"$RUST_DESK_PASSWORD\"}" > ~/.config/RustDesk/config.json
+
+    echo "RustDesk configured to start on boot."
+}
+
+# Function to install Envi theme
+install_envi_theme() {
+    echo "Installing Envi theme..."
+    wget -O /tmp/Envi-theme.tar.gz https://github.com/toorandomenvi/Envi-Theme/raw/master/Envi-theme-1.0.tar.gz
+    tar -xzf /tmp/Envi-theme.tar.gz -C /tmp/
+    sudo cp -r /tmp/Envi-theme/* /usr/share/themes/
+    rm -rf /tmp/Envi-theme /tmp/Envi-theme.tar.gz
+}
+
+# Function to remove unnecessary multimedia applications
+remove_multimedia_apps() {
+    echo "Removing unnecessary multimedia applications..."
+    sudo apt-get purge -y rhythmbox gnome-music
+    sudo apt-get autoremove -y
+}
+
+# Function to clean up
+cleanup() {
+    echo "Cleaning up..."
+    sudo apt-get clean
+}
+
+# Function to provide user feedback
+feedback() {
+    echo "$1"
+}
+
+# Main function to orchestrate the script
+main() {
+    detect_os
+    update_packages
+    install_packages
+    install_browser
+    install_rustdesk
+    configure_rustdesk
+    install_envi_theme
+    remove_multimedia_apps
+    cleanup
+    feedback "Setup and RustDesk configuration completed successfully."
+}
+
+# Execute the main function
+main
