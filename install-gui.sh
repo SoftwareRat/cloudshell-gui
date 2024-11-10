@@ -39,11 +39,21 @@ install_packages() {
 # Function to install RustDesk
 install_rustdesk() {
     echo "Installing RustDesk..."
-    local latest_deb
-    latest_deb=$(curl -s https://api.github.com/repos/rustdesk/rustdesk/releases/latest | grep "browser_download_url.*deb" | cut -d '"' -f 4)
-    wget -O /tmp/rustdesk.deb "$latest_deb"
+    local latest_release_api="https://api.github.com/repos/rustdesk/rustdesk/releases/latest"
+    local download_url
+
+    # Fetch the latest release information and extract the x86_64 .deb download URL
+    download_url=$(curl -s "$latest_release_api" | grep "browser_download_url.*x86_64.deb" | head -n 1 | cut -d '"' -f 4)
+
+    if [[ -z "$download_url" ]]; then
+        echo "Failed to retrieve RustDesk download URL."
+        exit 1
+    fi
+
+    wget -O /tmp/rustdesk.deb "$download_url"
     sudo dpkg -i /tmp/rustdesk.deb || sudo apt-get install -f -y
     rm /tmp/rustdesk.deb
+    echo "RustDesk installed successfully."
 }
 
 # Function to configure RustDesk for instant connection
@@ -69,6 +79,7 @@ install_envi_theme() {
     tar -xzf /tmp/Envi-theme.tar.gz -C /tmp/
     sudo cp -r /tmp/Envi-theme/* /usr/share/themes/
     rm -rf /tmp/Envi-theme /tmp/Envi-theme.tar.gz
+    echo "Envi theme installed successfully."
 }
 
 # Function to remove unnecessary multimedia applications
@@ -76,12 +87,14 @@ remove_multimedia_apps() {
     echo "Removing unnecessary multimedia applications..."
     sudo apt-get purge -y rhythmbox gnome-music
     sudo apt-get autoremove -y
+    echo "Unnecessary multimedia applications removed."
 }
 
 # Function to clean up
 cleanup() {
     echo "Cleaning up..."
     sudo apt-get clean
+    echo "Cleanup completed."
 }
 
 # Function to provide user feedback
