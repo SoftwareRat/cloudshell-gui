@@ -92,7 +92,6 @@ main() {
     detect_os
     update_packages
     install_packages
-    install_browser
     install_rustdesk
     configure_rustdesk
     install_envi_theme
