@@ -25,50 +25,43 @@ detect_os() {
 # Function to update package lists
 update_packages() {
     echo "Updating package lists..."
-    if [ ! -d "$HOME/.cloudshell" ] && [ ! -f "$HOME/.cloudshell/no-apt-get-warning" ]; then mkdir "$HOME/.cloudshell" && touch "$HOME/.cloudshell/no-apt-get-warning"; fi
+    if [ ! -d "$HOME/.cloudshell" ] && [ ! -f "$HOME/.cloudshell/no-apt-get-warning" ]; then
+        mkdir "$HOME/.cloudshell" && touch "$HOME/.cloudshell/no-apt-get-warning"
+    fi
     sudo apt-get update -y
 }
 
 # Function to install essential packages
 install_packages() {
     echo "Installing essential packages..."
-    sudo apt-get install -y xfce4 xvfb dbus-x11 neofetch firefox
+    sudo apt-get install -y xfce4 xvfb dbus-x11 neofetch firefox wget
 }
 
-# Function to install RustDesk
-install_rustdesk() {
-    echo "Installing RustDesk..."
-    local latest_release_api="https://api.github.com/repos/rustdesk/rustdesk/releases/latest"
-    local download_url
-
-    # Fetch the latest release information and extract the x86_64 .deb download URL
-    download_url=$(curl -s "$latest_release_api" | grep "browser_download_url.*x86_64.deb" | head -n 1 | cut -d '"' -f 4)
-
-    if [[ -z "$download_url" ]]; then
-        echo "Failed to retrieve RustDesk download URL."
-        exit 1
-    fi
-
-    wget -O /tmp/rustdesk.deb "$download_url"
-    sudo dpkg -i /tmp/rustdesk.deb || sudo apt-get install -f -y
-    rm /tmp/rustdesk.deb
-    echo "RustDesk installed successfully."
+# Function to install Chrome Remote Desktop
+install_chrome_remote_desktop() {
+    echo "Installing Chrome Remote Desktop..."
+    # Download the latest Chrome Remote Desktop .deb package
+    wget -O /tmp/chrome-remote-desktop_current_amd64.deb https://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb
+    # Install the package
+    sudo dpkg -i /tmp/chrome-remote-desktop_current_amd64.deb || sudo apt-get install -f -y
+    # Remove the downloaded package
+    rm /tmp/chrome-remote-desktop_current_amd64.deb
+    echo "Chrome Remote Desktop installed successfully."
 }
 
-# Function to configure RustDesk for instant connection
-configure_rustdesk() {
-    echo "Configuring RustDesk for instant connection..."
-    
-    # Enable RustDesk to start on boot
-    systemctl --user enable rustdesk
-    systemctl --user start rustdesk
+# Function to configure Chrome Remote Desktop for instant connection
+configure_chrome_remote_desktop() {
+    echo "Configuring Chrome Remote Desktop for instant connection..."
 
-    read -sp "Enter RustDesk password: " RUST_DESK_PASSWORD
-    echo
-    mkdir -p ~/.config/RustDesk
-    echo "{\"password\":\"$RUST_DESK_PASSWORD\"}" > ~/.config/RustDesk/config.json
+    # Set the desktop environment for Chrome Remote Desktop
+    echo "exec /usr/sbin/lightdm-session startxfce4" > ~/.chrome-remote-desktop-session
 
-    echo "RustDesk configured to start on boot."
+    # Prompt the user to enter the Chrome Remote Desktop code
+    read -p "Enter your Chrome Remote Desktop code: " CRD_CODE
+
+    # Execute the Chrome Remote Desktop start-host command with the provided code
+    DISPLAY= /opt/google/chrome-remote-desktop/start-host --code="$CRD_CODE" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name=$(hostname)
+    echo "Chrome Remote Desktop configured to start on boot."
 }
 
 # Function to install Envi theme
@@ -106,12 +99,12 @@ main() {
     detect_os
     update_packages
     install_packages
-    install_rustdesk
-    configure_rustdesk
+    install_chrome_remote_desktop
+    configure_chrome_remote_desktop
     install_envi_theme
     remove_multimedia_apps
     cleanup
-    feedback "Setup and RustDesk configuration completed successfully."
+    feedback "Setup and Chrome Remote Desktop configuration completed successfully."
 }
 
 # Execute the main function
