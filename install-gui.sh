@@ -31,7 +31,7 @@ update_packages() {
 # Function to install essential packages
 install_packages() {
     echo "Installing essential packages..."
-    sudo apt-get install -y xfce4 Xvfb dbus-x11 neofetch firefox
+    sudo apt-get install -y xfce4 xvfb dbus-x11 neofetch firefox
 }
 
 # Function to install RustDesk
