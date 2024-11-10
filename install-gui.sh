@@ -25,6 +25,8 @@ detect_os() {
 # Function to update package lists
 update_packages() {
     echo "Updating package lists..."
+    mkdir ~/.cloudshell
+    touch ~/.cloudshell/no-apt-get-warning
     sudo apt-get update -y
 }
 
